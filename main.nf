@@ -82,8 +82,10 @@ process RUN_DODONAPHY_VI {
   input:
     tuple val(ds), val(start)
   output:
-    path("samples.csv")
-    path("samples.trees")
+    path("vi/up_nj/d3_lr2_i1_b1/elbo.txt")
+    path("vi/up_nj/d3_lr2_i1_b1/samples.t")
+    path("vi/up_nj/d3_lr2_i1_b1/vi_model.log")
+    path("vi/up_nj/d3_lr2_i1_b1/vi.log")
     path("dodo.log")
     path("dodo.txt")
   """
