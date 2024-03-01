@@ -10,8 +10,8 @@ RUN apt-get update && \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/4ment/dodonaphy-experiments /dodonaphy-experiments
+RUN sed -i '/nextflow/d' /dodonaphy-experiments/environment.yml
 RUN conda env create -f /dodonaphy-experiments/environment.yml
-RUN chmod +x /dodonaphy-experiments/bin/nexus_to_fasta.py
 
 RUN git clone https://github.com/mattapow/hydraPlus
 RUN /opt/conda/envs/dodonaphy/bin/pip install hydraPlus/

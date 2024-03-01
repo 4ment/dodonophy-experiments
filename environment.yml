@@ -5,8 +5,10 @@ channels:
 dependencies:
   - cython
   - iqtree=2.2.6
-  # - nextflow
+  - matplotlib
+  - nextflow
   - numpy>=1.7
+  - pandas
   - pip
   - python=3.9
   - pytorch>=1.9

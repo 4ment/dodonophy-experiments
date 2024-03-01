@@ -10,15 +10,15 @@ process RUN_IQTREE {
   input:
     val(ds)
   output:
+    tuple val(ds), path("dodo.treefile")
     tuple val(ds), path("dodo.bionj")
     path("iqtree-${ds}.csv")
     path("dodo.iqtree")
     path("dodo.log")
-    path("dodo.treefile")
   """
-  iqtree2 -s ${projectDir}/data/DS${ds}.nex -m GTR+FO --prefix dodo -T AUTO
+  iqtree2 -s ${projectDir}/data/${ds}.nex -m GTR+FO --prefix dodo -T AUTO
   LNL=\$(grep "BEST SCORE" dodo.log | awk 'BEGIN{FS=" : "}{print \$2}')
-  echo "iqtree,${ds},\$LNL" > iqtree-${ds}.csv
+  echo "IQ-TREE,${ds},\$LNL" > iqtree-${ds}.csv
   """
 }
 
@@ -35,10 +35,10 @@ process RUN_RAXML {
     path("dodo.raxml.bestTree")
     path("dodo.raxml.bestModel")
   """
-  nexus_to_fasta.py ${projectDir}/data/DS${ds}.nex > DS.fasta
-  raxml-ng --model GTR --msa DS.fasta --prefix dodo
+  nexus_to_fasta.py ${projectDir}/data/${ds}.nex > DS.fasta
+  raxml-ng --model GTR --msa DS.fasta --prefix dodo --threads 3
   LNL=\$(grep "Final LogLikelihood:" dodo.raxml.log | awk 'BEGIN{FS=": "}{print \$2}')
-  echo "raxml,${ds},\$LNL" > raxml-${ds}.csv
+  echo "RAxML,${ds},\$LNL" > raxml-${ds}.csv
   """
 }
 
@@ -61,7 +61,7 @@ process RUN_DODONAPHY_HMAP {
     --connect nj \
     --model GTR \
     --embed up \
-    --path_dna ${projectDir}/data/DS${ds}.nex \
+    --path_dna ${projectDir}/data/${ds}.nex \
     --prior None \
     --epochs 2000 \
     --start ${start} \
@@ -72,7 +72,7 @@ process RUN_DODONAPHY_HMAP {
     > dodo.txt ; } 2> dodo.log
 
   LNL=\$(grep "Best log likelihood" hmap/nj/None/lr2_tau5/hmap.log | awk 'BEGIN{FS=": "}{print \$2}')
-  echo "dodonaphy,${ds},\$LNL" > dodonaphy-${ds}.csv
+  echo "Dodonaphy,${ds},\$LNL" > dodonaphy-${ds}.csv
   """
 }
 
@@ -80,12 +80,12 @@ process RUN_DODONAPHY_VI {
   publishDir "${params.results_dir}/vi/${ds}/", mode: 'copy'
 
   input:
-    tuple val(ds), val(start)
+    tuple val(ds), val(start), val(mixture), val(importance)
   output:
-    path("vi/up_nj/d3_lr2_i1_b1/elbo.txt")
-    path("vi/up_nj/d3_lr2_i1_b1/samples.t")
-    path("vi/up_nj/d3_lr2_i1_b1/vi_model.log")
-    path("vi/up_nj/d3_lr2_i1_b1/vi.log")
+    path("vi/up_nj/d3_lr2_i${importance}_b${mixture}/elbo.txt")
+    path("vi/up_nj/d3_lr2_i${importance}_b${mixture}/samples.t")
+    path("vi/up_nj/d3_lr2_i${importance}_b${mixture}/vi_model.log")
+    path("vi/up_nj/d3_lr2_i${importance}_b${mixture}/vi.log")
     path("dodo.log")
     path("dodo.txt")
   """
@@ -94,8 +94,8 @@ process RUN_DODONAPHY_VI {
     --connect nj \
     --model JC69 \
     --embed up \
-    --path_dna ${projectDir}/data/DS${ds}.nex \
-    --prior gammadir \
+    --path_dna ${projectDir}/data/${ds}.nex \
+    --prior exponential \
     --epochs 2000 \
     --draws 10000 \
     --start ${start} \
@@ -103,7 +103,7 @@ process RUN_DODONAPHY_VI {
     --curv -100 \
     --learn 0.01 \
     --temp 0.00001 \
-    --importance 1 --boosts 1 \
+    --importance ${importance} --boosts ${mixture} \
     > dodo.txt ; } 2> dodo.log
   """
 }
@@ -122,9 +122,9 @@ process RUN_DODONAPHY_PLUS {
     path("dodoplus.treefile")
   """
   grep tree ${treefile} | awk 'BEGIN{FS="] "} {print \$3}' > mape.nwk
-  iqtree2 -s ${projectDir}/data/DS${ds}.nex -te mape.nwk -m GTR+FO --prefix dodoplus -T AUTO
+  iqtree2 -s ${projectDir}/data/${ds}.nex -te mape.nwk -m GTR+FO --prefix dodoplus -T AUTO
   LNL=\$(grep "BEST SCORE" dodoplus.log | awk 'BEGIN{FS=" : "}{print \$2}')
-  echo "dodonaphyplus,${ds},\$LNL" > dodonaphyplus-${ds}.csv
+  echo "Dodonaphy+,${ds},\$LNL" > dodonaphyplus-${ds}.csv
   """
 }
 
@@ -141,9 +141,9 @@ process RUN_IQTREE_BIONJ {
     path("bionj.log")
     path("bionj.treefile")
   """
-  iqtree2 -s ${projectDir}/data/DS${ds}.nex -te ${treefile} -m GTR+FO --prefix bionj -T AUTO
+  iqtree2 -s ${projectDir}/data/${ds}.nex -te ${treefile} -m GTR+FO --prefix bionj -T AUTO
   LNL=\$(grep "BEST SCORE" bionj.log | awk 'BEGIN{FS=" : "}{print \$2}')
-  echo "bionj,${ds},\$LNL" > bionj-${ds}.csv
+  echo "BioNJ,${ds},\$LNL" > bionj-${ds}.csv
   """
 }
 
@@ -164,12 +164,12 @@ process COMBIME_CSV {
 }
 
 workflow{
-  ds = Channel.of(1..8)
+  ds = Channel.of(1..8).map{"DS$it"}
   RUN_IQTREE(ds)
   RUN_RAXML(ds)
   RUN_DODONAPHY_HMAP(RUN_IQTREE.out[0])
   RUN_DODONAPHY_PLUS(RUN_DODONAPHY_HMAP.out[0])
-  RUN_IQTREE_BIONJ(RUN_IQTREE.out[0])
+  RUN_IQTREE_BIONJ(RUN_IQTREE.out[1])
 
   ch_files = Channel.empty()
   ch_files = ch_files.mix(
@@ -179,6 +179,11 @@ workflow{
           RUN_DODONAPHY_PLUS.out[0].collect(),
           RUN_IQTREE_BIONJ.out[0].collect())
   COMBIME_CSV(ch_files.collect())
+
+  RUN_DODONAPHY_VI_BOOST(RUN_IQTREE.out[0].filter{it[0]=="DS1"}.combine(mixture_ch))
   
-  RUN_DODONAPHY_VI(RUN_IQTREE.out[0])
+  RUN_DODONAPHY_VI(
+    RUN_IQTREE.out[0].combine(Channel.of(1)).combine(Channel.of(1)).mix(
+    RUN_IQTREE.out[0].filter{it[0]=="DS1"}.combine(Channel.of(2..10).combine(Channel.of(3)))
+  ))
 }
