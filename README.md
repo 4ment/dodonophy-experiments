@@ -35,8 +35,28 @@ There is no need to install dependencies with docker or singularity.
 
     nextflow run main.nf -profile docker
 
-## Running the pipeline with singularity with PBS
+### Running the pipeline with singularity and PBS
 
     nextflow -C configs/uts.config run main.nf -profile singularity
 
-Since the pipeline will take weeks to run to completion one should use a high performance computer. Examples of configuration files for pbspro and slurm can be found in the [configs](configs/) folder.
+Since the pipeline will take weeks to run to completion one should use a high performance computer. An example of a configuration file for pbspro can be found in the [configs](configs/) folder.
+
+## Generating figures
+
+Table 1: Comparison of marginal log-likelihood estimates.
+
+    find results/vi -name samples.t|grep b1|xargs python bin/marginal.py
+
+Figure 2: Difference in maximum log likelihood estimates compared to RAxML across all datasets DS1-8.
+
+    find results/hmap -name "*.csv"| xargs python bin/ml_performance.py
+
+
+Figure 3: Variational approximation in $H^3$ compared to MCMC.
+
+    python bin/split_lengths_prepare.py results/vi/DS1/vi/up_nj/d3_lr2_i3_b3/samples.t results/mrbayes/DS1/DS1.nex.run*.t
+    python bin/split_lengths_plot.py branch_lengths_by_treelist_sorted.csv
+
+Figure 4: Effect of the number of boosts on the final SIWAE estimate for DS1.
+
+    find results/vi/DS1 -name vi.log| xargs python bin/SIWAE_boosts.py

@@ -147,6 +147,21 @@ process RUN_IQTREE_BIONJ {
   """
 }
 
+process RUN_MRBAYES {
+  publishDir "${params.results_dir}/${ds}/mrbayes/", mode: 'copy'
+  
+  input:
+    tuple val(ds), path(alignment)
+  output:
+    path("${ds}.nex.ckp")
+    path("${ds}.nex.mcmc")
+    path("${ds}.nex.run*")
+  """
+  sed 's/DS.nex/${ds}.nex/g' ${projectDir}/data/run.mb > run2.mb
+  mb run2.mb
+  """
+}
+
 process COMBIME_CSV {
   label 'ultrafast'
 
@@ -164,6 +179,8 @@ process COMBIME_CSV {
 }
 
 workflow{
+  RUN_MRBAYES(Channel.of("DS1").combine(Channel.of("$projectDir/data/DS1.nex")))
+  
   ds = Channel.of(1..8).map{"DS$it"}
   RUN_IQTREE(ds)
   RUN_RAXML(ds)
@@ -173,14 +190,12 @@ workflow{
 
   ch_files = Channel.empty()
   ch_files = ch_files.mix(
-          RUN_IQTREE.out[1].collect(),
+          RUN_IQTREE.out[2].collect(),
           RUN_RAXML.out[0].collect(),
           RUN_DODONAPHY_HMAP.out[1].collect(),
           RUN_DODONAPHY_PLUS.out[0].collect(),
           RUN_IQTREE_BIONJ.out[0].collect())
   COMBIME_CSV(ch_files.collect())
-
-  RUN_DODONAPHY_VI_BOOST(RUN_IQTREE.out[0].filter{it[0]=="DS1"}.combine(mixture_ch))
   
   RUN_DODONAPHY_VI(
     RUN_IQTREE.out[0].combine(Channel.of(1)).combine(Channel.of(1)).mix(
