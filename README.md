@@ -19,6 +19,7 @@ You will need to install [nextflow](https://www.nextflow.io) to run the pipeline
 
 ### Installing dependencies with conda
     conda env create -f environment.yml
+    conda activate dodonaphy
     git clone http://github.com/mattapow/hydraPlus.git
     pip install hydraPlus/
     git clone http://github.com/mattapow/dodonaphy.git
@@ -54,7 +55,7 @@ Figure 2: Difference in maximum log likelihood estimates compared to RAxML acros
 
 Figure 3: Variational approximation in $H^3$ compared to MCMC.
 
-    python bin/split_lengths_prepare.py results/vi/DS1/vi/up_nj/d3_lr2_i3_b3/samples.t results/mrbayes/DS1/DS1.nex.run*.t
+    python bin/split_lengths_prepare.py --output branch_lengths_by_treelist_sorted.csv results/vi/DS1/vi/up_nj/d3_lr2_i3_b3/samples.t results/mrbayes/DS1/DS1.nex.run*.t
     python bin/split_lengths_plot.py branch_lengths_by_treelist_sorted.csv
 
 Figure 4: Effect of the number of boosts on the final SIWAE estimate for DS1.
